@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function role() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role; }
+    function isStaff() { return request.auth != null && role() in ['staff','captain']; }
+    function isCaptain() { return request.auth != null && role() == 'captain'; }
+
+    match /users/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isStaff());
+      allow create: if (request.auth.uid == uid && request.resource.data.role == 'resident') || isCaptain();
+      allow update: if isStaff() || (request.auth.uid == uid && request.resource.data.role == resource.data.role);
+      allow delete: if isCaptain();
+    }
+    match /requests/{id} {
+      allow read: if request.auth != null && (resource.data.uid == request.auth.uid || isStaff());
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid && request.resource.data.status == 'Pending';
+      allow update: if isStaff() || (resource.data.uid == request.auth.uid && resource.data.status == 'Pending' && request.resource.data.status == 'Pending');
+      allow delete: if isCaptain() || (resource.data.uid == request.auth.uid && resource.data.status == 'Pending');
+    }
+    match /logs/{id} {
+      allow create: if isStaff();
+      allow read: if isCaptain();
+    }
+  }
+}

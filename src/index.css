@@ -1,0 +1,2 @@
+@import "tailwindcss";
+@theme { --color-navy: #173a69; --font-sans: "DM Sans", system-ui, sans-serif; }
